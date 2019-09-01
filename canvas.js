@@ -1,46 +1,55 @@
-"use strict";
+'use strict';
 
-const canvas = document.getElementById("drawingCanvas"),
+const canvas = document.getElementById('drawingCanvas'),
     canvLeft = canvas.offsetLeft,
     canvTop = canvas.offsetTop;
 var socket = io('http://localhost');
 var id = -1;
+var mouseProperties = {state: 'up'}
+var ctx;
+var points = [];
 socket.on('id', (data) => id = data.id);
-//const pointSizeLimit = 500;
-// limit point size sent to server
-/*
-const getResizedPoints = function(points) {
-    while (points.length > pointSizeLimit) {
-        points.shift();
-    }
-    return points;
-};
-*/
+
 // send points to server
 const sendPoints = function(points) {
     console.log(`Sending ${points.length} points`);
     console.log(points);
     socket.emit('points', {id: id, points: points});
     points.length = 0;
-    return points;
 };
-
+const drawPoint = function(point) {
+    ctx.fillRect(point.x,point.y,5,5);
+};
+const getCurrentPoint = function(event) {
+    let x = event.pageX - canvLeft,
+        y = event.pageY - canvTop;
+    return {x,y};
+};
+const drawCurrentPoint = function(event) {
+    let point = getCurrentPoint(event);
+    drawPoint(point);
+    points.push(point);
+};
+const handleMouseMove = function(event) {
+    if (mouseProperties.state === 'down') {
+        drawCurrentPoint(event);
+    }
+};
+const handleMouseDown = function(event) {
+    drawCurrentPoint(event);
+    mouseProperties.state = 'down';
+};
+const handleMouseUp = function(event) {
+    drawCurrentPoint(event);
+    mouseProperties.state = 'up';
+    sendPoints(points);
+};
 if (canvas.getContext) {
-    const ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d');
 
-    let points = [];
-    setInterval(() => {
-        if (points.length > 0) {
-            sendPoints(points);
-        }
-    }, 500);
-    canvas.addEventListener('click', (event) => {
-        let x = event.pageX - canvLeft,
-            y = event.pageY - canvTop;
-        points.push({x,y});
-        //points = getResizedPoints(points);
-        ctx.fillRect(x,y,5,5);
-    });
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
     socket.on('new points', (data) => {
         console.log('got new points', data.id, data.points);
         if (data.id !== id) {
