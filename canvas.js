@@ -3,7 +3,7 @@
 const canvas = document.getElementById('drawingCanvas'),
     canvLeft = canvas.offsetLeft,
     canvTop = canvas.offsetTop;
-var socket = io('http://localhost');
+var socket = io();
 var id = -1;
 var mouseProperties = {state: 'up'}
 var ctx;
@@ -50,6 +50,9 @@ if (canvas.getContext) {
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mousedown', handleMouseDown);
     canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('touchend', handleMouseUp);
+    canvas.addEventListener('touchstart', handleMouseDown);
+    canvas.addEventListener('touchmove', handleMouseMove);
     socket.on('new points', (data) => {
         console.log('got new points', data.id, data.points);
         if (data.id !== id) {
