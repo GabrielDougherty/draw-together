@@ -3,6 +3,16 @@
 const canvas = document.getElementById('drawingCanvas'),
     canvLeft = canvas.offsetLeft,
     canvTop = canvas.offsetTop;
+function preventDefault(e){
+    e.preventDefault();
+}
+    
+function disableScroll(){
+    document.body.addEventListener('touchmove', preventDefault, { passive: false });
+}
+function enableScroll(){
+    document.body.removeEventListener('touchmove', preventDefault);
+}
 var socket = io();
 var id = -1;
 var mouseProperties = { state: 'up' }
@@ -10,37 +20,62 @@ var ctx;
 var points = [];
 socket.on('id', (data) => id = data.id);
 
+const LINE_WIDTH = 5;
+
 // send points to server
 const sendPoints = function (points) {
-    console.log(`Sending ${points.length} points`);
+    console.log(`Sending ${points.length} state`);
     console.log(points);
-    socket.emit('points', { id: id, points: points });
+    socket.emit('state', { id: id, state: { type: 'line', data: points } });
     points.length = 0;
 };
 const drawPoint = function (point) {
     ctx.fillRect(point.x, point.y, 5, 5);
+};
+const drawLine = function (point1, point2) {
+    ctx.beginPath();
+    ctx.moveTo(point1.x, point1.y);
+    ctx.lineTo(point2.x, point2.y);
+    ctx.lineWidth = LINE_WIDTH;
+    ctx.stroke();
 };
 const getCurrentPoint = function (event) {
     let x = event.pageX - canvLeft,
         y = event.pageY - canvTop;
     return { x, y };
 };
-const drawCurrentPoint = function (event) {
-    let point = getCurrentPoint(event);
-    drawPoint(point);
-    points.push(point);
+
+// useful when receiving objects from server
+const drawCanvasObject = function (obj) {
+    points = [];
+    if (obj.type == 'line') {
+        for (let p of obj.data) {
+            interactiveDrawPoint(p);
+        }
+    }
+    points = [];
 };
+
+// TODO: store lines as separate segments so they aren't all connected
+const interactiveDrawPoint = function (point) {
+    if (points.length == 0) {
+        drawPoint(point);
+    } else {
+        drawLine(points[points.length - 1], point);
+    }
+    points.push(point);
+}
 const handleMouseMove = function (event) {
     if (mouseProperties.state === 'down') {
-        drawCurrentPoint(event);
+        interactiveDrawPoint(getCurrentPoint(event));
     }
 };
 const handleMouseDown = function (event) {
-    drawCurrentPoint(event);
+    interactiveDrawPoint(getCurrentPoint(event));
     mouseProperties.state = 'down';
 };
 const handleMouseUp = function (event) {
-    drawCurrentPoint(event);
+    interactiveDrawPoint(getCurrentPoint(event));
     mouseProperties.state = 'up';
     sendPoints(points);
 };
@@ -50,7 +85,7 @@ const clearCanvas = function () {
 };
 const clearCanvasButtonCB = function () {
     clearCanvas();
-    socket.emit('clear', {id: id});
+    socket.emit('clear', { id: id });
 };
 if (canvas.getContext) {
     ctx = canvas.getContext('2d');
@@ -62,10 +97,10 @@ if (canvas.getContext) {
     canvas.addEventListener('touchstart', handleMouseDown);
     canvas.addEventListener('touchmove', handleMouseMove);
     socket.on('newpoints', (data) => {
-        console.log('got new points', data.id, data.points);
+        console.log('got new points', data.id, data.state);
         if (data.id !== id) {
-            for (let p of data.points) {
-                ctx.fillRect(p.x, p.y, 5, 5);
+            for (let s of data.state) {
+                drawCanvasObject(s);
             }
         }
     });

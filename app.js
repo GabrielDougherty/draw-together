@@ -14,24 +14,29 @@ app.get('/', function (req, res) {
 app.get('/canvas.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'canvas.js'));
 });
-var allPoints = [];
+app.get('/style.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'style.css'));
+});
+var allState = [];
 var id = 0;
+const serverId = id;
+id++;
 io.on('connection', function (socket) {
     socket.emit('id', { id: id });
-    if (allPoints.length > 0) {
-        socket.emit('newpoints', { id: -1, points: allPoints });
+    if (allState.length > 0) {
+        socket.emit('newpoints', { id: serverId, state: allState });
     }
     id++;
-    socket.on('points', function (data) {
-        if (data.id !== -1) {
-            allPoints = allPoints.concat(data.points);
+    socket.on('state', function (data) {
+        if (data.id !== -1) { // -1 if client didn't get id properly
+            allState = allState.concat(data.state);
         }
         console.log('ids', data.id);
-        console.log("got points", data.points);
+        console.log("got points", data.state);
         socket.broadcast.emit('newpoints', data);
     });
     socket.on('clear', function (data) {
         socket.broadcast.emit('clear', data);
-        allPoints.length = 0;
+        allState.length = 0;
     })
 });
