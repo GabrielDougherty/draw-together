@@ -44,6 +44,14 @@ const handleMouseUp = function (event) {
     mouseProperties.state = 'up';
     sendPoints(points);
 };
+const clearCanvas = function () {
+    ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.clientWidth, canvas.height);
+};
+const clearCanvasButtonCB = function () {
+    clearCanvas();
+    socket.emit('clear', {id: id});
+};
 if (canvas.getContext) {
     ctx = canvas.getContext('2d');
 
@@ -59,6 +67,11 @@ if (canvas.getContext) {
             for (let p of data.points) {
                 ctx.fillRect(p.x, p.y, 5, 5);
             }
+        }
+    });
+    socket.on('clear', (data) => {
+        if (data.id !== id) {
+            clearCanvas();
         }
     });
 } else {

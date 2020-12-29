@@ -30,4 +30,8 @@ io.on('connection', function (socket) {
         console.log("got points", data.points);
         socket.broadcast.emit('newpoints', data);
     });
+    socket.on('clear', function (data) {
+        socket.broadcast.emit('clear', data);
+        allPoints.length = 0;
+    })
 });
