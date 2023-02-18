@@ -26,7 +26,7 @@ const LINE_WIDTH = 5;
 const sendPoints = function (points) {
     console.log(`Sending ${points.length} state`);
     console.log(points);
-    socket.emit('state', { id: id, state: { type: 'line', data: points } });
+    socket.emit('state', { id: id, state: [{ type: 'line', data: points }] });
     points.length = 0;
 };
 const drawPoint = function (point) {
